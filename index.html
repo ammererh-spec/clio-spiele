@@ -6,18 +6,18 @@
 <meta name="theme-color" content="#7c2d12">
 <title>Clio Spiele</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f7f1e8; --karte: #fffdf8; --text: #2b2118; --leise: #7a6a5a;
     --akzent: #9a3412; --akzent-hell: #fed7aa; --gut: #15803d; --gut-hell: #dcfce7;
-    --falsch: #b91c1c; --falsch-hell: #fee2e2; --rand: #e7dccb;
+    --falsch: #b91c1c; --falsch-hell: #fee2e2; --rand: #e7dccb; --rueck: #7c2d12;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1c1712; --karte: #2a221a; --text: #f3eadf; --leise: #b8a794;
       --akzent: #fb923c; --akzent-hell: #43261a; --gut: #4ade80; --gut-hell: #14301f;
-      --falsch: #f87171; --falsch-hell: #3b1a1a; --rand: #3d3227;
+      --falsch: #f87171; --falsch-hell: #3b1a1a; --rand: #3d3227; --rueck: #9a3412;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -27,35 +27,11 @@
   header { text-align: center; padding: 8px 0 4px; }
   .marke { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--akzent); font-weight: 600; }
   h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(22px, 6vw, 30px); margin: 6px 0 4px; line-height: 1.2; }
-  .hinweis { color: var(--leise); font-size: 15px; margin: 4px 0 14px; text-align: center; }
+  .hinweis { color: var(--leise); font-size: 15px; margin: 4px 0 14px; text-align: center; line-height: 1.4; }
   .ton { display: inline-block; font-size: 13px; color: var(--leise); border: 1px solid var(--rand);
     border-radius: 999px; padding: 4px 10px; margin-bottom: 10px; }
-  .achse { display: flex; justify-content: space-between; font-size: 13px; color: var(--leise); margin: 0 4px 6px; }
-  ol#liste { list-style: none; margin: 0; padding: 0; }
-  .karte { display: flex; align-items: center; gap: 10px; background: var(--karte);
-    border: 2px solid var(--rand); border-radius: 14px; padding: 12px 10px 12px 14px; margin: 0 0 10px;
-    font-size: 17px; line-height: 1.3; min-height: 58px; touch-action: manipulation;
-    transition: border-color .2s, background .2s, transform .2s; user-select: none; -webkit-user-select: none; }
-  .karte .nr { font-weight: 700; color: var(--akzent); min-width: 1.6em; }
-  .karte .text { flex: 1; }
-  .karte .jahr { font-family: "Source Serif 4", Georgia, serif; font-weight: 700; color: var(--gut); display: none; }
-  .karte.zeige-jahr .jahr { display: inline; }
-  .pfeile { display: flex; flex-direction: column; gap: 4px; }
-  .pfeile button { width: 40px; height: 32px; border-radius: 8px; border: 1px solid var(--rand);
-    background: var(--bg); color: var(--text); font-size: 16px; cursor: pointer; }
-  .pfeile button:active { background: var(--akzent-hell); }
-  .karte.richtig { border-color: var(--gut); background: var(--gut-hell); }
-  .karte.falsch { border-color: var(--falsch); background: var(--falsch-hell); animation: wackeln .4s; }
-  .sortable-ghost { opacity: .35; }
-  .sortable-chosen { transform: scale(1.02); box-shadow: 0 8px 22px rgba(0,0,0,.18); }
-  @keyframes wackeln { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-  .leiste { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: linear-gradient(transparent, var(--bg) 30%); }
-  .leiste .innen { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; }
-  .knopf { flex: 1; font: 600 18px Inter, system-ui, sans-serif; padding: 16px; border-radius: 14px; border: 0;
-    background: var(--akzent); color: #fff; cursor: pointer; }
-  .knopf.zweit { background: var(--karte); color: var(--text); border: 2px solid var(--rand); flex: 0 0 auto; }
-  .knopf:active { transform: scale(.98); }
+  .mitte { text-align: center; }
+  .achse { font-size: 13px; color: var(--leise); margin: 0 4px 6px; }
   #meldung { text-align: center; font-size: 18px; font-weight: 600; min-height: 28px; margin: 6px 0 10px; }
   #meldung.gut { color: var(--gut); } #meldung.falsch { color: var(--falsch); }
   .gewonnen { text-align: center; font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 9vw, 44px);
@@ -63,26 +39,112 @@
   .fehler { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 20px; text-align: center; }
   body.sieg { animation: blitz 1.2s ease-out; }
   @keyframes blitz { 0% { background: var(--gut-hell); } 100% { background: var(--bg); } }
+  @keyframes wackeln { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .richtig { border-color: var(--gut) !important; background: var(--gut-hell) !important; }
+  .falsch { border-color: var(--falsch) !important; background: var(--falsch-hell) !important; animation: wackeln .4s; }
+
+  /* Reihenfolge (Zeitleiste, Domino) */
+  ol.liste { list-style: none; margin: 0; padding: 0; }
+  .karte { display: flex; align-items: center; gap: 10px; background: var(--karte);
+    border: 2px solid var(--rand); border-radius: 14px; padding: 12px 10px 12px 14px; margin: 0 0 10px;
+    font-size: 17px; line-height: 1.3; min-height: 58px; touch-action: manipulation;
+    transition: border-color .2s, background .2s; user-select: none; -webkit-user-select: none; }
+  .karte .nr { font-weight: 700; color: var(--akzent); min-width: 1.6em; }
+  .karte .text { flex: 1; }
+  .karte .jahr { font-family: "Source Serif 4", Georgia, serif; font-weight: 700; color: var(--gut); display: none; }
+  .karte.zeige-jahr .jahr { display: inline; }
+  .stein { flex: 1; display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--text); border-radius: 10px; overflow: hidden; font-size: 15px; }
+  .stein span { padding: 8px 10px; }
+  .stein span + span { border-left: 2px dashed var(--text); }
+  .pfeile { display: flex; flex-direction: column; gap: 4px; }
+  .pfeile button { width: 40px; height: 32px; border-radius: 8px; border: 1px solid var(--rand);
+    background: var(--bg); color: var(--text); font-size: 16px; cursor: pointer; }
+  .pfeile button:active { background: var(--akzent-hell); }
+  .sortable-ghost { opacity: .35; }
+  .sortable-chosen { transform: scale(1.02); box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+
+  /* Quiz */
+  .frage { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 16px; font-size: 19px; line-height: 1.4; margin-bottom: 12px; font-weight: 600; }
+  .stand { font-size: 14px; color: var(--leise); text-align: center; margin-bottom: 8px; }
+  .optionen button { display: block; width: 100%; text-align: left; font: 17px Inter, system-ui, sans-serif; color: var(--text);
+    background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 14px 16px; margin: 0 0 10px; cursor: pointer; }
+  .optionen button b { color: var(--akzent); margin-right: 8px; }
+  .erklaerung { background: var(--akzent-hell); border-radius: 12px; padding: 12px 14px; font-size: 15px; line-height: 1.45; margin-top: 4px; }
+
+  /* Memory */
+  .raster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mk { aspect-ratio: 3 / 4; border-radius: 12px; border: 2px solid var(--rand); background: var(--rueck); color: transparent;
+    display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; font-size: 13px; line-height: 1.25;
+    cursor: pointer; overflow: hidden; hyphens: auto; word-break: break-word; transition: background .2s, color .2s; }
+  .mk::before { content: "?"; color: #fed7aa; font-size: 28px; font-family: "Source Serif 4", Georgia, serif; }
+  .mk.offen, .mk.weg { background: var(--karte); color: var(--text); }
+  .mk.offen::before, .mk.weg::before { content: none; }
+  .mk.weg { border-color: var(--gut); background: var(--gut-hell); cursor: default; }
+
+  /* Hangman */
+  .hm-kat { text-align: center; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--akzent); font-weight: 700; }
+  .hm-hint { text-align: center; color: var(--leise); margin: 6px 0 14px; font-size: 16px; line-height: 1.4; }
+  .hm-wort { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0 14px; }
+  .hm-wort span { min-width: 26px; border-bottom: 3px solid var(--text); text-align: center; font: 700 26px "Source Serif 4", Georgia, serif; padding: 2px 0; }
+  .hm-wort span.frei { border-bottom-color: transparent; min-width: 12px; }
+  .leben { text-align: center; font-size: 22px; margin-bottom: 10px; letter-spacing: 2px; }
+  .tasten { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .tasten button { padding: 12px 0; border-radius: 10px; border: 1px solid var(--rand); background: var(--karte);
+    color: var(--text); font: 700 17px Inter, system-ui, sans-serif; cursor: pointer; }
+  .tasten button:disabled { opacity: .3; }
+  .tasten button.treffer { background: var(--gut-hell); border-color: var(--gut); opacity: 1; }
+
+  /* Lückentext */
+  .lt-text { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 16px; font-size: 18px; line-height: 2.1; }
+  .luecke { display: inline-block; min-width: 90px; padding: 0 10px; margin: 0 2px; border: 2px dashed var(--akzent); border-radius: 8px;
+    background: var(--bg); color: var(--text); font: 600 16px Inter, system-ui, sans-serif; line-height: 1.8; cursor: pointer; }
+  .luecke.voll { border-style: solid; }
+  .luecke.aktiv { box-shadow: 0 0 0 3px var(--akzent-hell); }
+  .wortbank { position: fixed; left: 0; right: 0; bottom: 0; background: var(--karte); border-top: 2px solid var(--rand);
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); display: none; z-index: 5; max-height: 55vh; overflow: auto;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.15); }
+  .wortbank.offen { display: block; }
+  .wortbank .kopf { font-size: 14px; color: var(--leise); margin-bottom: 8px; }
+  .wortbank button { margin: 0 6px 8px 0; padding: 10px 14px; border-radius: 999px; border: 2px solid var(--rand);
+    background: var(--bg); color: var(--text); font: 600 16px Inter, system-ui, sans-serif; cursor: pointer; }
+
+  /* Zuordnen (Kausalkette) */
+  .kette { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .kette h2 { font: 700 18px "Source Serif 4", Georgia, serif; margin: 0 0 10px; }
+  .paar { border: 2px solid var(--rand); border-radius: 12px; padding: 10px; margin-bottom: 10px; background: var(--bg); }
+  .paar .links { font-size: 16px; line-height: 1.35; margin-bottom: 8px; }
+  .paar .links::before { content: attr(data-l) " "; color: var(--leise); font-size: 12px; display: block; text-transform: uppercase; letter-spacing: .06em; }
+  .paar select { width: 100%; font: 16px Inter, system-ui, sans-serif; padding: 10px; border-radius: 10px; border: 2px solid var(--rand);
+    background: var(--karte); color: var(--text); }
+
+  /* Untere Leiste */
+  .leiste { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, var(--bg) 30%); }
+  .leiste .innen { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; }
+  .knopf { flex: 1; font: 600 18px Inter, system-ui, sans-serif; padding: 16px; border-radius: 14px; border: 0;
+    background: var(--akzent); color: #fff; cursor: pointer; }
+  .knopf.zweit { background: var(--karte); color: var(--text); border: 2px solid var(--rand); flex: 0 0 auto; }
+  .knopf:active { transform: scale(.98); }
+  .knopf:disabled { opacity: .45; }
 </style>
 </head>
 <body>
 <main id="app">
   <header>
-    <div class="marke">Clio Suite · Zeitleiste</div>
-    <h1 id="titel">Ereignisse ordnen</h1>
+    <div class="marke" id="marke">Clio Suite</div>
+    <h1 id="titel">Clio Spiele</h1>
   </header>
-  <p class="hinweis" id="anleitung">Bringe die Ereignisse in die richtige zeitliche Reihenfolge – ziehen oder mit ▲▼ verschieben.</p>
-  <div style="text-align:center"><span class="ton">🔊 Ton an – es wird laut!</span></div>
+  <p class="hinweis" id="anleitung"></p>
+  <div class="mitte"><span class="ton">🔊 Ton an – es wird laut!</span></div>
   <div class="gewonnen" id="gewonnen">🎉 Richtig gelöst! 🎉</div>
   <div id="meldung" role="status" aria-live="polite"></div>
-  <div class="achse"><span>⬆ früher</span></div>
-  <ol id="liste"></ol>
-  <div class="achse"><span>⬇ später</span></div>
+  <div id="spiel"></div>
 </main>
-<div class="leiste"><div class="innen">
-  <button class="knopf zweit" id="neu" type="button" title="Neu mischen">🔀</button>
-  <button class="knopf" id="pruefen" type="button">Prüfen</button>
+<div class="leiste" id="leiste"><div class="innen">
+  <button class="knopf zweit" id="neu" type="button" title="Neu beginnen">🔀</button>
+  <button class="knopf" id="haupt" type="button">Prüfen</button>
 </div></div>
+<div class="wortbank" id="wortbank"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
@@ -150,12 +212,10 @@ function rauschen(ac, sek) {
 function jubel() {
   const ac = audio(); if (!ac) return;
   const out = ausgang(ac, 1.0), t = ac.currentTime + 0.02;
-  // Fanfare: aufsteigend, dann Schlussakkord
   [[523.25, 0], [659.25, .13], [783.99, .26], [1046.5, .39]].forEach(([f, d]) => {
     ton(ac, out, f, t + d, 0.16); ton(ac, out, f / 2, t + d, 0.16, "square", 0.12, 1500);
   });
   [523.25, 659.25, 783.99, 1046.5].forEach(f => ton(ac, out, f, t + 0.55, 1.3, "sawtooth", 0.22));
-  // Applaus: viele kurze, gefilterte Rauschimpulse, an- und abschwellend
   const klatsch = rauschen(ac, 0.04);
   for (let i = 0; i < 260; i++) {
     const s = t + 0.5 + Math.pow(Math.random(), 0.8) * 3.2;
@@ -163,13 +223,12 @@ function jubel() {
     const bp = ac.createBiquadFilter(); bp.type = "bandpass";
     bp.frequency.value = 900 + Math.random() * 1800; bp.Q.value = 1.2;
     const g = ac.createGain();
-    const huelle = Math.sin(Math.min(1, (s - t - 0.5) / 3.2) * Math.PI);   // an- und abschwellen
+    const huelle = Math.sin(Math.min(1, (s - t - 0.5) / 3.2) * Math.PI);
     g.gain.setValueAtTime(0.0001, s);
     g.gain.exponentialRampToValueAtTime(0.25 + 0.55 * huelle, s + 0.003);
     g.gain.exponentialRampToValueAtTime(0.0001, s + 0.035);
     src.connect(bp); bp.connect(g); g.connect(out); src.start(s);
   }
-  // Menge: breites Rauschen als "Jubel"-Teppich
   const menge = ac.createBufferSource(); menge.buffer = rauschen(ac, 3.5);
   const lp = ac.createBiquadFilter(); lp.type = "bandpass"; lp.frequency.value = 700; lp.Q.value = 0.5;
   const mg = ac.createGain();
@@ -181,7 +240,6 @@ function jubel() {
 function traurig() {
   const ac = audio(); if (!ac) return;
   const out = ausgang(ac, 0.9), t = ac.currentTime + 0.02;
-  // "Wah – wah – wah – waaah": absteigende Posaune, letzte Note mit Vibrato
   const noten = [[392.0, 0, .5], [369.99, .55, .5], [349.23, 1.1, .5], [329.63, 1.65, 1.6]];
   noten.forEach(([f, d, dauer], i) => {
     const o = ton(ac, out, f, t + d, dauer, "sawtooth", 0.4, 900);
@@ -195,113 +253,386 @@ function traurig() {
     }
   });
 }
+function pling() {                       // kleiner Erfolg (Paar gefunden, Antwort richtig)
+  const ac = audio(); if (!ac) return;
+  const out = ausgang(ac, 0.6), t = ac.currentTime + 0.01;
+  ton(ac, out, 880, t, 0.12, "triangle", 0.5); ton(ac, out, 1318.5, t + 0.1, 0.22, "triangle", 0.5);
+}
+function plong() {                       // kleiner Fehler
+  const ac = audio(); if (!ac) return;
+  const out = ausgang(ac, 0.5), t = ac.currentTime + 0.01;
+  const o = ton(ac, out, 220, t, 0.35, "square", 0.25, 700);
+  o.frequency.exponentialRampToValueAtTime(150, t + 0.35);
+}
 
-// ── Spiel ───────────────────────────────────────────────────────────────────
-let ereignisse = [], versuche = 0, geloest = false;
-const liste = document.getElementById("liste");
-const meldung = document.getElementById("meldung");
-
+// ── Gemeinsame Rückmeldung ──────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function melde(text, art = "") { $("meldung").textContent = text; $("meldung").className = art; }
+function sieg(text) {
+  $("gewonnen").style.display = "block";
+  melde(text, "gut");
+  document.body.classList.remove("sieg"); void document.body.offsetWidth; document.body.classList.add("sieg");
+  jubel();
+  if (navigator.vibrate) navigator.vibrate([80, 60, 80, 60, 200]);
+  if (window.confetti) {
+    const ende = Date.now() + 2500;
+    (function regen() {
+      confetti({ particleCount: 7, angle: 60, spread: 70, origin: { x: 0 } });
+      confetti({ particleCount: 7, angle: 120, spread: 70, origin: { x: 1 } });
+      if (Date.now() < ende) requestAnimationFrame(regen);
+    })();
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function niederlage(text) {
+  melde(text, "falsch");
+  traurig();
+  if (navigator.vibrate) navigator.vibrate(300);
+}
+function zuruecksetzenAnzeige() { $("gewonnen").style.display = "none"; melde(""); }
 function mischen(a) {
   const b = a.slice();
   for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
-  // nie schon fertig sortiert ausgeben
-  if (b.every((e, i) => i === 0 || b[i - 1].j <= e.j)) return b.length > 1 ? mischen(a) : b;
   return b;
 }
-function nummern() {
-  [...liste.children].forEach((li, i) => li.querySelector(".nr").textContent = (i + 1) + ".");
+function knoepfe(haupt, hauptText, neu) {
+  $("haupt").textContent = hauptText; $("haupt").onclick = () => { audio(); haupt(); };
+  $("neu").onclick = () => { audio(); neu(); };
+  $("leiste").style.display = "";
 }
-function karte(e) {
-  const li = document.createElement("li");
-  li.className = "karte"; li.dataset.jahr = e.j;
-  li.innerHTML = '<span class="nr"></span><span class="text"></span> <span class="jahr"></span>' +
-    '<span class="pfeile"><button type="button" aria-label="nach oben">▲</button>' +
-    '<button type="button" aria-label="nach unten">▼</button></span>';
-  li.querySelector(".text").textContent = e.l;
-  li.querySelector(".jahr").textContent = e.j;
-  const [hoch, runter] = li.querySelectorAll(".pfeile button");
-  hoch.onclick = () => { if (li.previousElementSibling) liste.insertBefore(li, li.previousElementSibling); zuruecksetzen(); };
-  runter.onclick = () => { if (li.nextElementSibling) liste.insertBefore(li.nextElementSibling, li); zuruecksetzen(); };
-  return li;
-}
-function zuruecksetzen() {
-  nummern();
-  if (geloest) return;
-  [...liste.children].forEach(li => li.classList.remove("richtig", "falsch"));
-  meldung.textContent = ""; meldung.className = "";
-}
-function aufbauen() {
-  geloest = false; versuche = 0;
-  document.getElementById("gewonnen").style.display = "none";
-  document.getElementById("pruefen").textContent = "Prüfen";
-  liste.innerHTML = "";
-  mischen(ereignisse).forEach(e => liste.appendChild(karte(e)));
-  zuruecksetzen();
-}
-function pruefen() {
-  audio();                                    // Ton freischalten (braucht eine Berührung)
-  if (geloest) { aufbauen(); return; }
-  nummern();
-  versuche++;
-  const soll = ereignisse.map(e => e.j).sort((a, b) => a - b);
-  const karten = [...liste.children];
-  let richtig = 0;
-  karten.forEach((li, i) => {
-    const ok = Number(li.dataset.jahr) === soll[i];        // gleiche Jahre: beide Plätze richtig
-    li.classList.remove("richtig", "falsch"); void li.offsetWidth;
-    li.classList.add(ok ? "richtig" : "falsch");
-    if (ok) richtig++;
-  });
-  if (richtig === karten.length) {
-    geloest = true;
-    karten.forEach(li => li.classList.add("zeige-jahr"));
-    document.getElementById("gewonnen").style.display = "block";
-    meldung.className = "gut";
-    meldung.textContent = versuche === 1 ? "Beim ersten Versuch – großartig!" : `Geschafft nach ${versuche} Versuchen!`;
-    document.getElementById("pruefen").textContent = "Nochmal spielen";
-    document.body.classList.remove("sieg"); void document.body.offsetWidth; document.body.classList.add("sieg");
-    jubel();
-    if (navigator.vibrate) navigator.vibrate([80, 60, 80, 60, 200]);
-    if (window.confetti) {
-      const ende = Date.now() + 2500;
-      (function regen() {
-        confetti({ particleCount: 7, angle: 60, spread: 70, origin: { x: 0 } });
-        confetti({ particleCount: 7, angle: 120, spread: 70, origin: { x: 1 } });
-        if (Date.now() < ende) requestAnimationFrame(regen);
-      })();
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } else {
-    meldung.className = "falsch";
-    meldung.textContent = `${richtig} von ${karten.length} richtig – rote Karten verschieben und nochmal prüfen.`;
-    traurig();
-    if (navigator.vibrate) navigator.vibrate(300);
+const ERFOLG = 0.8;   // Quiz/Hangman: ab 80 % richtig gibt es den großen Jubel
+
+// ── Spieltyp: Reihenfolge (Zeitleiste, Domino) ──────────────────────────────
+// schluessel(i) bestimmt, was an Position i stehen muss: Jahr (Zeitleiste – gleiche
+// Jahre sind beide richtig) bzw. Original-Position (Domino).
+function reihenfolge(eintraege, darstellen, schluessel, nachLoesung) {
+  const spiel = $("spiel");
+  let versuche = 0, geloest = false;
+  spiel.innerHTML = '<div class="achse">⬆ ' + (window.ACHSE_OBEN || "Anfang") + '</div><ol class="liste" id="liste"></ol>' +
+    '<div class="achse">⬇ ' + (window.ACHSE_UNTEN || "Ende") + '</div>';
+  const liste = $("liste");
+  const soll = eintraege.map((e, i) => schluessel(e, i)).sort((a, b) => a - b);
+  function nummern() { [...liste.children].forEach((li, i) => li.querySelector(".nr").textContent = (i + 1) + "."); }
+  function geaendert() {
+    nummern();
+    if (geloest) return;
+    [...liste.children].forEach(li => li.classList.remove("richtig", "falsch"));
+    melde("");
   }
+  function aufbauen() {
+    geloest = false; versuche = 0; zuruecksetzenAnzeige();
+    liste.innerHTML = "";
+    let reihe;
+    do { reihe = mischen(eintraege.map((e, i) => [e, i])); }
+    while (reihe.length > 2 && reihe.every(([e, i], k) => schluessel(e, i) === soll[k]));
+    reihe.forEach(([e, i]) => {
+      const li = document.createElement("li");
+      li.className = "karte"; li.dataset.k = schluessel(e, i);
+      li.innerHTML = '<span class="nr"></span>';
+      li.appendChild(darstellen(e));
+      li.insertAdjacentHTML("beforeend", '<span class="pfeile"><button type="button" aria-label="nach oben">▲</button>' +
+        '<button type="button" aria-label="nach unten">▼</button></span>');
+      const [hoch, runter] = li.querySelectorAll(".pfeile button");
+      hoch.onclick = () => { if (li.previousElementSibling) liste.insertBefore(li, li.previousElementSibling); geaendert(); };
+      runter.onclick = () => { if (li.nextElementSibling) liste.insertBefore(li.nextElementSibling, li); geaendert(); };
+      liste.appendChild(li);
+    });
+    nummern();
+    knoepfe(pruefen, "Prüfen", aufbauen);
+  }
+  function pruefen() {
+    nummern(); versuche++;
+    const karten = [...liste.children];
+    let richtig = 0;
+    karten.forEach((li, i) => {
+      const ok = Number(li.dataset.k) === soll[i];
+      li.classList.remove("richtig", "falsch"); void li.offsetWidth;
+      li.classList.add(ok ? "richtig" : "falsch");
+      if (ok) richtig++;
+    });
+    if (richtig === karten.length) {
+      geloest = true;
+      if (nachLoesung) karten.forEach(nachLoesung);
+      sieg(versuche === 1 ? "Beim ersten Versuch – großartig!" : `Geschafft nach ${versuche} Versuchen!`);
+      knoepfe(aufbauen, "Nochmal spielen", aufbauen);
+    } else {
+      niederlage(`${richtig} von ${karten.length} richtig – rote Karten verschieben und nochmal prüfen.`);
+    }
+  }
+  aufbauen();
+  if (window.Sortable) Sortable.create(liste, { animation: 160, delay: 120, delayOnTouchOnly: true,
+    filter: ".pfeile", preventOnFilter: false, onEnd: geaendert });
 }
 
-async function start() {
+// ── Spieltyp: Quiz (Millionenshow, Team-Quiz) ───────────────────────────────
+function quiz(fragen) {
+  const spiel = $("spiel");
+  let nr = 0, punkte = 0, reihe = [];
+  function start() { zuruecksetzenAnzeige(); nr = 0; punkte = 0; reihe = mischen(fragen); zeigen(); }
+  function zeigen() {
+    const [frage, opts, richtigIdx, erkl] = reihe[nr];
+    spiel.innerHTML = `<div class="stand">Frage ${nr + 1} von ${reihe.length} · ${punkte} richtig</div>` +
+      '<div class="frage"></div><div class="optionen"></div><div class="erklaerung" style="display:none"></div>';
+    spiel.querySelector(".frage").textContent = frage;
+    const box = spiel.querySelector(".optionen");
+    opts.forEach((o, i) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.innerHTML = `<b>${"ABCD"[i]}</b>`; b.append(o);
+      b.onclick = () => antworten(i, b);
+      box.appendChild(b);
+    });
+    $("leiste").style.display = "none";
+  }
+  function antworten(i, b) {
+    audio();
+    const [, , richtigIdx, erkl] = reihe[nr];
+    const alle = [...spiel.querySelectorAll(".optionen button")];
+    alle.forEach(x => x.disabled = true);
+    alle[richtigIdx].classList.add("richtig");
+    if (i === richtigIdx) { punkte++; pling(); } else { b.classList.add("falsch"); plong(); }
+    if (erkl) { const e = spiel.querySelector(".erklaerung"); e.textContent = erkl; e.style.display = "block"; }
+    const letzte = nr === reihe.length - 1;
+    knoepfe(() => { if (letzte) ende(); else { nr++; zeigen(); } }, letzte ? "Ergebnis" : "Weiter", start);
+  }
+  function ende() {
+    spiel.innerHTML = `<div class="frage mitte">${punkte} von ${reihe.length} richtig</div>`;
+    knoepfe(start, "Nochmal spielen", start);
+    if (punkte / reihe.length >= ERFOLG) sieg(punkte === reihe.length ? "Alles richtig – großartig!" : "Stark gespielt!");
+    else niederlage("Das geht noch besser – versuch es gleich nochmal!");
+  }
+  start();
+}
+
+// ── Spieltyp: Memory ────────────────────────────────────────────────────────
+function memory(paare) {
+  const spiel = $("spiel");
+  let offen = [], gefunden = 0, zuege = 0, sperre = false;
+  function start() {
+    zuruecksetzenAnzeige(); offen = []; gefunden = 0; zuege = 0; sperre = false;
+    const karten = mischen(paare.flatMap(([a, b], i) => [[a, i], [b, i]]));
+    spiel.innerHTML = '<div class="stand" id="mstand"></div><div class="raster" id="raster"></div>';
+    karten.forEach(([text, paar]) => {
+      const d = document.createElement("div");
+      d.className = "mk"; d.dataset.p = paar; d.textContent = text;
+      d.onclick = () => klick(d);
+      $("raster").appendChild(d);
+    });
+    stand(); knoepfe(start, "Neu mischen", start);
+  }
+  function stand() { $("mstand").textContent = `${gefunden} von ${paare.length} Paaren · ${zuege} Züge`; }
+  function klick(d) {
+    audio();
+    if (sperre || d.classList.contains("offen") || d.classList.contains("weg")) return;
+    d.classList.add("offen"); offen.push(d);
+    if (offen.length < 2) return;
+    zuege++;
+    const [a, b] = offen; offen = [];
+    if (a.dataset.p === b.dataset.p) {
+      a.classList.replace("offen", "weg"); b.classList.replace("offen", "weg");
+      gefunden++; pling(); stand();
+      if (gefunden === paare.length) sieg(`Alle Paare gefunden – in ${zuege} Zügen!`);
+    } else {
+      sperre = true; stand();
+      setTimeout(() => { a.classList.remove("offen"); b.classList.remove("offen"); sperre = false; }, 1100);
+    }
+  }
+  start();
+}
+
+// ── Spieltyp: Hangman ───────────────────────────────────────────────────────
+function hangman(begriffe) {
+  const spiel = $("spiel");
+  const LEBEN = 7, ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß".split("");
+  let reihe = [], nr = 0, geschafft = 0, geraten, fehler;
+  // "ß".toUpperCase() ergibt in JavaScript "SS" – ß bleibt daher ß
+  const gross = c => (c === "ß" || c === "ẞ") ? "ß" : c.toUpperCase();
+  // nur ratbare Begriffe (mindestens ein Buchstabe auf der Tastatur)
+  begriffe = begriffe.filter(([w]) => /[A-Za-zÄÖÜäöüßẞ]/.test(w || ""));
+  function start() { zuruecksetzenAnzeige(); reihe = mischen(begriffe); nr = 0; geschafft = 0; wort(); }
+  function wort() {
+    geraten = new Set(); fehler = 0;
+    const [w, hint, kat] = reihe[nr];
+    spiel.innerHTML = `<div class="stand">Begriff ${nr + 1} von ${reihe.length} · ${geschafft} gelöst</div>` +
+      '<div class="hm-kat"></div><div class="hm-hint"></div><div class="hm-wort" id="hmw"></div>' +
+      '<div class="leben" id="leben"></div><div class="tasten" id="tasten"></div>';
+    spiel.querySelector(".hm-kat").textContent = kat || "";
+    spiel.querySelector(".hm-hint").textContent = hint || "";
+    ABC.forEach(c => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = c;
+      b.onclick = () => raten(c, b);
+      $("tasten").appendChild(b);
+    });
+    zeichnen(); $("leiste").style.display = "none";
+  }
+  function buchstabe(c) { return /[A-Za-zÄÖÜäöüßẞ]/.test(c); }
+  function zeichnen(alles = false) {
+    const w = reihe[nr][0];
+    $("hmw").innerHTML = "";
+    [...w].forEach(c => {
+      const s = document.createElement("span");
+      if (c === " ") { s.className = "frei"; }
+      else if (!buchstabe(c) || alles || geraten.has(gross(c))) s.textContent = gross(c);
+      $("hmw").appendChild(s);
+    });
+    $("leben").textContent = "❤️".repeat(LEBEN - fehler) + "🤍".repeat(fehler);
+  }
+  function geloest() { return [...reihe[nr][0]].every(c => !buchstabe(c) || geraten.has(gross(c))); }
+  function raten(c, b) {
+    audio();
+    b.disabled = true; geraten.add(c);
+    const w = [...reihe[nr][0]].map(gross).join("");
+    if (w.includes(c)) { b.classList.add("treffer"); pling(); } else { fehler++; plong(); }
+    zeichnen();
+    if (geloest()) { geschafft++; weiter("Gelöst! ✓", "gut"); }
+    else if (fehler >= LEBEN) { zeichnen(true); weiter("Leider nicht – das Wort ist aufgedeckt.", "falsch"); }
+  }
+  function weiter(text, art) {
+    melde(text, art);
+    [...$("tasten").children].forEach(x => x.disabled = true);
+    const letzte = nr === reihe.length - 1;
+    knoepfe(() => { melde(""); if (letzte) ende(); else { nr++; wort(); } }, letzte ? "Ergebnis" : "Nächster Begriff", start);
+  }
+  function ende() {
+    spiel.innerHTML = `<div class="frage mitte">${geschafft} von ${reihe.length} Begriffen gelöst</div>`;
+    knoepfe(start, "Nochmal spielen", start);
+    if (geschafft / reihe.length >= ERFOLG) sieg(geschafft === reihe.length ? "Alle Begriffe gelöst!" : "Stark geraten!");
+    else niederlage("Das geht noch besser – versuch es gleich nochmal!");
+  }
+  start();
+}
+
+// ── Spieltyp: Lückentext ────────────────────────────────────────────────────
+function lueckentext(text, ablenker) {
+  const spiel = $("spiel"), bank = $("wortbank");
+  const teile = text.split(/\[\[(.+?)\]\]/);           // gerade: Text, ungerade: Lösungswort
+  const loesungen = teile.filter((_, i) => i % 2);
+  let aktiv = null, geloest = false;
+  function start() {
+    zuruecksetzenAnzeige(); geloest = false; schliessen();
+    spiel.innerHTML = '<div class="lt-text" id="lt"></div>';
+    teile.forEach((t, i) => {
+      if (i % 2 === 0) { $("lt").append(t); return; }
+      const b = document.createElement("button"); b.type = "button"; b.className = "luecke";
+      b.dataset.soll = t; b.textContent = "…";
+      b.onclick = () => oeffnen(b);
+      $("lt").appendChild(b);
+    });
+    knoepfe(pruefen, "Prüfen", start);
+  }
+  function oeffnen(b) {
+    if (geloest) return;
+    audio();
+    spiel.querySelectorAll(".luecke").forEach(x => x.classList.remove("aktiv", "richtig", "falsch"));
+    aktiv = b; b.classList.add("aktiv");
+    bank.innerHTML = '<div class="kopf">Wort für die Lücke wählen:</div>';
+    mischen([...loesungen, ...ablenker]).forEach(w => {
+      const x = document.createElement("button"); x.type = "button"; x.textContent = w;
+      x.onclick = () => { aktiv.textContent = w; aktiv.dataset.ist = w; aktiv.classList.add("voll"); schliessen(); };
+      bank.appendChild(x);
+    });
+    const leer = document.createElement("button"); leer.type = "button"; leer.textContent = "✕ leeren";
+    leer.onclick = () => { aktiv.textContent = "…"; delete aktiv.dataset.ist; aktiv.classList.remove("voll"); schliessen(); };
+    bank.appendChild(leer);
+    bank.classList.add("offen");
+  }
+  function schliessen() { bank.classList.remove("offen"); if (aktiv) aktiv.classList.remove("aktiv"); aktiv = null; }
+  function pruefen() {
+    schliessen();
+    const l = [...spiel.querySelectorAll(".luecke")];
+    let richtig = 0;
+    l.forEach(b => {
+      const ok = (b.dataset.ist || "").trim().toLowerCase() === b.dataset.soll.trim().toLowerCase();
+      b.classList.remove("richtig", "falsch"); void b.offsetWidth;
+      b.classList.add(ok ? "richtig" : "falsch"); if (ok) richtig++;
+    });
+    if (richtig === l.length) { geloest = true; sieg("Alle Lücken richtig!"); knoepfe(start, "Nochmal spielen", start); }
+    else niederlage(`${richtig} von ${l.length} Lücken richtig – rote Lücken antippen und ändern.`);
+  }
+  start();
+}
+
+// ── Spieltyp: Zuordnen (Kausalkette) ────────────────────────────────────────
+function zuordnen(linksLabel, rechtsLabel, ketten) {
+  const spiel = $("spiel");
+  function start() {
+    zuruecksetzenAnzeige();
+    spiel.innerHTML = "";
+    ketten.forEach(([titel, paare]) => {
+      const k = document.createElement("div"); k.className = "kette";
+      const h = document.createElement("h2"); h.textContent = titel; k.appendChild(h);
+      const rechte = mischen(paare.map(p => p[1]));
+      paare.forEach(([l, r]) => {
+        const p = document.createElement("div"); p.className = "paar"; p.dataset.soll = r;
+        const lt = document.createElement("div"); lt.className = "links"; lt.dataset.l = linksLabel + ":"; lt.textContent = l;
+        const s = document.createElement("select");
+        s.innerHTML = `<option value="">${rechtsLabel} wählen …</option>`;
+        rechte.forEach(x => { const o = document.createElement("option"); o.value = x; o.textContent = x; s.appendChild(o); });
+        s.onchange = () => { audio(); p.classList.remove("richtig", "falsch"); melde(""); };
+        p.append(lt, s); k.appendChild(p);
+      });
+      spiel.appendChild(k);
+    });
+    knoepfe(pruefen, "Prüfen", start);
+  }
+  function pruefen() {
+    const p = [...spiel.querySelectorAll(".paar")];
+    let richtig = 0;
+    p.forEach(x => {
+      const ok = x.querySelector("select").value === x.dataset.soll;
+      x.classList.remove("richtig", "falsch"); void x.offsetWidth;
+      x.classList.add(ok ? "richtig" : "falsch"); if (ok) richtig++;
+    });
+    if (richtig === p.length) { sieg("Alle Zusammenhänge richtig!"); knoepfe(start, "Nochmal spielen", start); }
+    else niederlage(`${richtig} von ${p.length} richtig – rote Felder ändern und nochmal prüfen.`);
+  }
+  start();
+}
+
+// ── Start ───────────────────────────────────────────────────────────────────
+const TYPEN = {
+  zeitleiste: { marke: "Zeitleiste", anl: "Bringe die Ereignisse in die richtige zeitliche Reihenfolge – ziehen oder mit ▲▼ verschieben.",
+    los: d => { window.ACHSE_OBEN = "früher"; window.ACHSE_UNTEN = "später";
+      const e = d.e.map(([l, j]) => ({ l: String(l), j: Number(j) }));
+      reihenfolge(e, x => { const s = document.createElement("span"); s.className = "text"; s.textContent = x.l + " ";
+        const j = document.createElement("span"); j.className = "jahr"; j.textContent = x.j; s.appendChild(j); return s; },
+        x => x.j, li => li.classList.add("zeige-jahr")); } },
+  domino: { marke: "Domino", anl: "Lege die Steine zu einer Kette: Die rechte Hälfte eines Steins passt zur linken des nächsten. Ziehen oder ▲▼.",
+    los: d => { window.ACHSE_OBEN = "Anfang der Kette"; window.ACHSE_UNTEN = "Ende der Kette";
+      reihenfolge(d.e, ([a, b]) => { const s = document.createElement("span"); s.className = "stein";
+        const x = document.createElement("span"); x.textContent = a; const y = document.createElement("span"); y.textContent = b;
+        s.append(x, y); return s; }, (_, i) => i); } },
+  quiz: { marke: "Quiz", anl: "Tippe die richtige Antwort an.", los: d => quiz(d.e) },
+  memory: { marke: "Memory", anl: "Decke zwei Karten auf und finde die zusammengehörenden Paare.", los: d => memory(d.e) },
+  hangman: { marke: "Hangman", anl: "Errate den Begriff Buchstabe für Buchstabe – du hast 7 Leben.", los: d => hangman(d.e) },
+  lueckentext: { marke: "Lückentext", anl: "Tippe auf eine Lücke und wähle das passende Wort. Achtung: Es gibt auch falsche Wörter.",
+    los: d => lueckentext(d.e.t, d.e.d || []) },
+  zuordnen: { marke: "Kausalkette", anl: "Ordne jeder Ursache die passende Folge zu.",
+    los: d => zuordnen(d.e.l || "Ursache", d.e.r || "Folge", d.e.k) },
+};
+
+async function startSpiel() {
   try {
     const d = await datenLesen();
-    if (d.typ !== "zeitleiste" || !Array.isArray(d.e) || d.e.length < 2) throw new Error("unbekanntes Spiel");
-    ereignisse = d.e.map(([l, j]) => ({ l: String(l), j: Number(j) }));
-    document.getElementById("titel").textContent = d.titel || "Ereignisse ordnen";
-    document.title = (d.titel || "Zeitleiste") + " · Clio Spiele";
-    aufbauen();
-    if (window.Sortable) {
-      Sortable.create(liste, { animation: 160, delay: 120, delayOnTouchOnly: true,
-        filter: ".pfeile", preventOnFilter: false, onEnd: zuruecksetzen });
-    }
-    document.getElementById("pruefen").onclick = pruefen;
-    document.getElementById("neu").onclick = () => { audio(); aufbauen(); };
+    const typ = TYPEN[d.typ];
+    if (!typ || !d.e) throw new Error("unbekanntes Spiel: " + d.typ);
+    $("marke").textContent = "Clio Suite · " + typ.marke;
+    $("titel").textContent = d.titel || typ.marke;
+    $("anleitung").textContent = typ.anl;
+    document.title = (d.titel || typ.marke) + " · Clio Spiele";
+    typ.los(d);
   } catch (err) {
-    document.getElementById("app").innerHTML =
+    $("app").innerHTML =
       '<header><div class="marke">Clio Suite</div><h1>Kein Spiel gefunden</h1></header>' +
       '<div class="fehler">Dieser Link enthält kein gültiges Spiel. Bitte den QR-Code noch einmal scannen ' +
-      'oder die Lehrkraft fragen.<br><br><small>' + String(err.message || err) + '</small></div>';
-    document.querySelector(".leiste").style.display = "none";
+      'oder die Lehrkraft fragen.<br><br><small></small></div>';
+    $("app").querySelector("small").textContent = String(err.message || err);
+    $("leiste").style.display = "none";
   }
 }
-start();
+startSpiel();
+// Neuer Spiel-Link im selben Tab (z. B. aus einem Chat): Der Browser lädt bei
+// geänderter Raute nicht neu – das alte Spiel bliebe stehen.
+window.addEventListener("hashchange", () => location.reload());
 </script>
 </body>
 </html>
