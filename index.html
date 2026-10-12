@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7c2d12">
+<title>Clio Spiele</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f1e8; --karte: #fffdf8; --text: #2b2118; --leise: #7a6a5a;
+    --akzent: #9a3412; --akzent-hell: #fed7aa; --gut: #15803d; --gut-hell: #dcfce7;
+    --falsch: #b91c1c; --falsch-hell: #fee2e2; --rand: #e7dccb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1712; --karte: #2a221a; --text: #f3eadf; --leise: #b8a794;
+      --akzent: #fb923c; --akzent-hell: #43261a; --gut: #4ade80; --gut-hell: #14301f;
+      --falsch: #f87171; --falsch-hell: #3b1a1a; --rand: #3d3227;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 120px; }
+  header { text-align: center; padding: 8px 0 4px; }
+  .marke { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--akzent); font-weight: 600; }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(22px, 6vw, 30px); margin: 6px 0 4px; line-height: 1.2; }
+  .hinweis { color: var(--leise); font-size: 15px; margin: 4px 0 14px; text-align: center; }
+  .ton { display: inline-block; font-size: 13px; color: var(--leise); border: 1px solid var(--rand);
+    border-radius: 999px; padding: 4px 10px; margin-bottom: 10px; }
+  .achse { display: flex; justify-content: space-between; font-size: 13px; color: var(--leise); margin: 0 4px 6px; }
+  ol#liste { list-style: none; margin: 0; padding: 0; }
+  .karte { display: flex; align-items: center; gap: 10px; background: var(--karte);
+    border: 2px solid var(--rand); border-radius: 14px; padding: 12px 10px 12px 14px; margin: 0 0 10px;
+    font-size: 17px; line-height: 1.3; min-height: 58px; touch-action: manipulation;
+    transition: border-color .2s, background .2s, transform .2s; user-select: none; -webkit-user-select: none; }
+  .karte .nr { font-weight: 700; color: var(--akzent); min-width: 1.6em; }
+  .karte .text { flex: 1; }
+  .karte .jahr { font-family: "Source Serif 4", Georgia, serif; font-weight: 700; color: var(--gut); display: none; }
+  .karte.zeige-jahr .jahr { display: inline; }
+  .pfeile { display: flex; flex-direction: column; gap: 4px; }
+  .pfeile button { width: 40px; height: 32px; border-radius: 8px; border: 1px solid var(--rand);
+    background: var(--bg); color: var(--text); font-size: 16px; cursor: pointer; }
+  .pfeile button:active { background: var(--akzent-hell); }
+  .karte.richtig { border-color: var(--gut); background: var(--gut-hell); }
+  .karte.falsch { border-color: var(--falsch); background: var(--falsch-hell); animation: wackeln .4s; }
+  .sortable-ghost { opacity: .35; }
+  .sortable-chosen { transform: scale(1.02); box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+  @keyframes wackeln { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .leiste { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, var(--bg) 30%); }
+  .leiste .innen { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; }
+  .knopf { flex: 1; font: 600 18px Inter, system-ui, sans-serif; padding: 16px; border-radius: 14px; border: 0;
+    background: var(--akzent); color: #fff; cursor: pointer; }
+  .knopf.zweit { background: var(--karte); color: var(--text); border: 2px solid var(--rand); flex: 0 0 auto; }
+  .knopf:active { transform: scale(.98); }
+  #meldung { text-align: center; font-size: 18px; font-weight: 600; min-height: 28px; margin: 6px 0 10px; }
+  #meldung.gut { color: var(--gut); } #meldung.falsch { color: var(--falsch); }
+  .gewonnen { text-align: center; font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 9vw, 44px);
+    color: var(--gut); margin: 8px 0; display: none; }
+  .fehler { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 20px; text-align: center; }
+  body.sieg { animation: blitz 1.2s ease-out; }
+  @keyframes blitz { 0% { background: var(--gut-hell); } 100% { background: var(--bg); } }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div class="marke">Clio Suite · Zeitleiste</div>
+    <h1 id="titel">Ereignisse ordnen</h1>
+  </header>
+  <p class="hinweis" id="anleitung">Bringe die Ereignisse in die richtige zeitliche Reihenfolge – ziehen oder mit ▲▼ verschieben.</p>
+  <div style="text-align:center"><span class="ton">🔊 Ton an – es wird laut!</span></div>
+  <div class="gewonnen" id="gewonnen">🎉 Richtig gelöst! 🎉</div>
+  <div id="meldung" role="status" aria-live="polite"></div>
+  <div class="achse"><span>⬆ früher</span></div>
+  <ol id="liste"></ol>
+  <div class="achse"><span>⬇ später</span></div>
+</main>
+<div class="leiste"><div class="innen">
+  <button class="knopf zweit" id="neu" type="button" title="Neu mischen">🔀</button>
+  <button class="knopf" id="pruefen" type="button">Prüfen</button>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+"use strict";
+// ── Daten aus dem Link lesen ────────────────────────────────────────────────
+// Alles hinter "#" verlässt das Gerät nie (wird nicht an den Server geschickt).
+// #z=… : JSON, deflate-raw komprimiert, base64url   |   #d=… : JSON, base64url
+function b64urlZuBytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function datenLesen() {
+  const hash = location.hash.slice(1);
+  const p = new URLSearchParams(hash);
+  if (p.get("z")) {
+    const bytes = b64urlZuBytes(p.get("z"));
+    const strom = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return JSON.parse(await new Response(strom).text());
+  }
+  if (p.get("d")) return JSON.parse(new TextDecoder().decode(b64urlZuBytes(p.get("d"))));
+  throw new Error("kein Spiel im Link");
+}
+
+// ── Klänge: im Browser erzeugt (keine Dateien, keine Lizenzfragen) ──────────
+let ctx = null;
+function audio() {
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctx = new AC();
+  }
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function ausgang(ac, lautst) {
+  const komp = ac.createDynamicsCompressor();
+  komp.threshold.value = -12; komp.ratio.value = 6;
+  const g = ac.createGain(); g.gain.value = lautst;
+  g.connect(komp); komp.connect(ac.destination);
+  return g;
+}
+function ton(ac, ziel, freq, start, dauer, typ = "sawtooth", lautst = 0.35, filter = 2600) {
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  o.type = typ; o.frequency.setValueAtTime(freq, start);
+  f.type = "lowpass"; f.frequency.value = filter;
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(lautst, start + 0.03);
+  g.gain.setValueAtTime(lautst, start + dauer * 0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dauer);
+  o.connect(f); f.connect(g); g.connect(ziel);
+  o.start(start); o.stop(start + dauer + 0.05);
+  return o;
+}
+function rauschen(ac, sek) {
+  const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * sek), ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+}
+function jubel() {
+  const ac = audio(); if (!ac) return;
+  const out = ausgang(ac, 1.0), t = ac.currentTime + 0.02;
+  // Fanfare: aufsteigend, dann Schlussakkord
+  [[523.25, 0], [659.25, .13], [783.99, .26], [1046.5, .39]].forEach(([f, d]) => {
+    ton(ac, out, f, t + d, 0.16); ton(ac, out, f / 2, t + d, 0.16, "square", 0.12, 1500);
+  });
+  [523.25, 659.25, 783.99, 1046.5].forEach(f => ton(ac, out, f, t + 0.55, 1.3, "sawtooth", 0.22));
+  // Applaus: viele kurze, gefilterte Rauschimpulse, an- und abschwellend
+  const klatsch = rauschen(ac, 0.04);
+  for (let i = 0; i < 260; i++) {
+    const s = t + 0.5 + Math.pow(Math.random(), 0.8) * 3.2;
+    const src = ac.createBufferSource(); src.buffer = klatsch;
+    const bp = ac.createBiquadFilter(); bp.type = "bandpass";
+    bp.frequency.value = 900 + Math.random() * 1800; bp.Q.value = 1.2;
+    const g = ac.createGain();
+    const huelle = Math.sin(Math.min(1, (s - t - 0.5) / 3.2) * Math.PI);   // an- und abschwellen
+    g.gain.setValueAtTime(0.0001, s);
+    g.gain.exponentialRampToValueAtTime(0.25 + 0.55 * huelle, s + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, s + 0.035);
+    src.connect(bp); bp.connect(g); g.connect(out); src.start(s);
+  }
+  // Menge: breites Rauschen als "Jubel"-Teppich
+  const menge = ac.createBufferSource(); menge.buffer = rauschen(ac, 3.5);
+  const lp = ac.createBiquadFilter(); lp.type = "bandpass"; lp.frequency.value = 700; lp.Q.value = 0.5;
+  const mg = ac.createGain();
+  mg.gain.setValueAtTime(0.0001, t + 0.4);
+  mg.gain.exponentialRampToValueAtTime(0.18, t + 1.0);
+  mg.gain.exponentialRampToValueAtTime(0.0001, t + 3.9);
+  menge.connect(lp); lp.connect(mg); mg.connect(out); menge.start(t + 0.4);
+}
+function traurig() {
+  const ac = audio(); if (!ac) return;
+  const out = ausgang(ac, 0.9), t = ac.currentTime + 0.02;
+  // "Wah – wah – wah – waaah": absteigende Posaune, letzte Note mit Vibrato
+  const noten = [[392.0, 0, .5], [369.99, .55, .5], [349.23, 1.1, .5], [329.63, 1.65, 1.6]];
+  noten.forEach(([f, d, dauer], i) => {
+    const o = ton(ac, out, f, t + d, dauer, "sawtooth", 0.4, 900);
+    o.frequency.setValueAtTime(f * 1.02, t + d);
+    o.frequency.exponentialRampToValueAtTime(f * 0.97, t + d + dauer);
+    if (i === 3) {
+      const lfo = ac.createOscillator(), tiefe = ac.createGain();
+      lfo.frequency.value = 5.5; tiefe.gain.value = 9;
+      lfo.connect(tiefe); tiefe.connect(o.frequency);
+      lfo.start(t + d + 0.25); lfo.stop(t + d + dauer);
+    }
+  });
+}
+
+// ── Spiel ───────────────────────────────────────────────────────────────────
+let ereignisse = [], versuche = 0, geloest = false;
+const liste = document.getElementById("liste");
+const meldung = document.getElementById("meldung");
+
+function mischen(a) {
+  const b = a.slice();
+  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+  // nie schon fertig sortiert ausgeben
+  if (b.every((e, i) => i === 0 || b[i - 1].j <= e.j)) return b.length > 1 ? mischen(a) : b;
+  return b;
+}
+function nummern() {
+  [...liste.children].forEach((li, i) => li.querySelector(".nr").textContent = (i + 1) + ".");
+}
+function karte(e) {
+  const li = document.createElement("li");
+  li.className = "karte"; li.dataset.jahr = e.j;
+  li.innerHTML = '<span class="nr"></span><span class="text"></span> <span class="jahr"></span>' +
+    '<span class="pfeile"><button type="button" aria-label="nach oben">▲</button>' +
+    '<button type="button" aria-label="nach unten">▼</button></span>';
+  li.querySelector(".text").textContent = e.l;
+  li.querySelector(".jahr").textContent = e.j;
+  const [hoch, runter] = li.querySelectorAll(".pfeile button");
+  hoch.onclick = () => { if (li.previousElementSibling) liste.insertBefore(li, li.previousElementSibling); zuruecksetzen(); };
+  runter.onclick = () => { if (li.nextElementSibling) liste.insertBefore(li.nextElementSibling, li); zuruecksetzen(); };
+  return li;
+}
+function zuruecksetzen() {
+  nummern();
+  if (geloest) return;
+  [...liste.children].forEach(li => li.classList.remove("richtig", "falsch"));
+  meldung.textContent = ""; meldung.className = "";
+}
+function aufbauen() {
+  geloest = false; versuche = 0;
+  document.getElementById("gewonnen").style.display = "none";
+  document.getElementById("pruefen").textContent = "Prüfen";
+  liste.innerHTML = "";
+  mischen(ereignisse).forEach(e => liste.appendChild(karte(e)));
+  zuruecksetzen();
+}
+function pruefen() {
+  audio();                                    // Ton freischalten (braucht eine Berührung)
+  if (geloest) { aufbauen(); return; }
+  nummern();
+  versuche++;
+  const soll = ereignisse.map(e => e.j).sort((a, b) => a - b);
+  const karten = [...liste.children];
+  let richtig = 0;
+  karten.forEach((li, i) => {
+    const ok = Number(li.dataset.jahr) === soll[i];        // gleiche Jahre: beide Plätze richtig
+    li.classList.remove("richtig", "falsch"); void li.offsetWidth;
+    li.classList.add(ok ? "richtig" : "falsch");
+    if (ok) richtig++;
+  });
+  if (richtig === karten.length) {
+    geloest = true;
+    karten.forEach(li => li.classList.add("zeige-jahr"));
+    document.getElementById("gewonnen").style.display = "block";
+    meldung.className = "gut";
+    meldung.textContent = versuche === 1 ? "Beim ersten Versuch – großartig!" : `Geschafft nach ${versuche} Versuchen!`;
+    document.getElementById("pruefen").textContent = "Nochmal spielen";
+    document.body.classList.remove("sieg"); void document.body.offsetWidth; document.body.classList.add("sieg");
+    jubel();
+    if (navigator.vibrate) navigator.vibrate([80, 60, 80, 60, 200]);
+    if (window.confetti) {
+      const ende = Date.now() + 2500;
+      (function regen() {
+        confetti({ particleCount: 7, angle: 60, spread: 70, origin: { x: 0 } });
+        confetti({ particleCount: 7, angle: 120, spread: 70, origin: { x: 1 } });
+        if (Date.now() < ende) requestAnimationFrame(regen);
+      })();
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } else {
+    meldung.className = "falsch";
+    meldung.textContent = `${richtig} von ${karten.length} richtig – rote Karten verschieben und nochmal prüfen.`;
+    traurig();
+    if (navigator.vibrate) navigator.vibrate(300);
+  }
+}
+
+async function start() {
+  try {
+    const d = await datenLesen();
+    if (d.typ !== "zeitleiste" || !Array.isArray(d.e) || d.e.length < 2) throw new Error("unbekanntes Spiel");
+    ereignisse = d.e.map(([l, j]) => ({ l: String(l), j: Number(j) }));
+    document.getElementById("titel").textContent = d.titel || "Ereignisse ordnen";
+    document.title = (d.titel || "Zeitleiste") + " · Clio Spiele";
+    aufbauen();
+    if (window.Sortable) {
+      Sortable.create(liste, { animation: 160, delay: 120, delayOnTouchOnly: true,
+        filter: ".pfeile", preventOnFilter: false, onEnd: zuruecksetzen });
+    }
+    document.getElementById("pruefen").onclick = pruefen;
+    document.getElementById("neu").onclick = () => { audio(); aufbauen(); };
+  } catch (err) {
+    document.getElementById("app").innerHTML =
+      '<header><div class="marke">Clio Suite</div><h1>Kein Spiel gefunden</h1></header>' +
+      '<div class="fehler">Dieser Link enthält kein gültiges Spiel. Bitte den QR-Code noch einmal scannen ' +
+      'oder die Lehrkraft fragen.<br><br><small>' + String(err.message || err) + '</small></div>';
+    document.querySelector(".leiste").style.display = "none";
+  }
+}
+start();
+</script>
+</body>
+</html>
