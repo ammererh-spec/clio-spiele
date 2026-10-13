@@ -33,7 +33,7 @@
   .mitte { text-align: center; }
   .achse { font-size: 13px; color: var(--leise); margin: 0 4px 6px; }
   #meldung { text-align: center; font-size: 18px; font-weight: 600; min-height: 28px; margin: 6px 0 10px; }
-  #meldung.gut { color: var(--gut); } #meldung.falsch { color: var(--falsch); }
+  #meldung.m-gut { color: var(--gut); } #meldung.m-falsch { color: var(--falsch); }
   .gewonnen { text-align: center; font-family: "Source Serif 4", Georgia, serif; font-size: clamp(30px, 9vw, 44px);
     color: var(--gut); margin: 8px 0; display: none; }
   .fehler { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 20px; text-align: center; }
@@ -108,14 +108,22 @@
   .wortbank button { margin: 0 6px 8px 0; padding: 10px 14px; border-radius: 999px; border: 2px solid var(--rand);
     background: var(--bg); color: var(--text); font: 600 16px Inter, system-ui, sans-serif; cursor: pointer; }
 
-  /* Zuordnen (Kausalkette) */
-  .kette { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  /* Zuordnen (Kausalkette): Folgen neben die passende Ursache ziehen */
+  .kette { background: var(--karte); border: 2px solid var(--rand); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
   .kette h2 { font: 700 18px "Source Serif 4", Georgia, serif; margin: 0 0 10px; }
-  .paar { border: 2px solid var(--rand); border-radius: 12px; padding: 10px; margin-bottom: 10px; background: var(--bg); }
-  .paar .links { font-size: 16px; line-height: 1.35; margin-bottom: 8px; }
-  .paar .links::before { content: attr(data-l) " "; color: var(--leise); font-size: 12px; display: block; text-transform: uppercase; letter-spacing: .06em; }
-  .paar select { width: 100%; font: 16px Inter, system-ui, sans-serif; padding: 10px; border-radius: 10px; border: 2px solid var(--rand);
-    background: var(--karte); color: var(--text); }
+  .k-kopf, .k-raster { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .k-kopf { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--leise); margin-bottom: 6px; }
+  .k-spalte { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .zelle { height: 92px; border: 2px solid var(--rand); border-radius: 12px; padding: 8px 10px; font-size: 14.5px;
+    line-height: 1.3; display: flex; align-items: center; gap: 6px; overflow: hidden; position: relative; }
+  .zelle .t { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .ursache { background: var(--bg); }
+  .ursache::after { content: "→"; position: absolute; right: -2px; top: 50%; transform: translateY(-50%);
+    color: var(--akzent); font-weight: 700; font-size: 16px; }
+  .folge { background: var(--karte); cursor: grab; touch-action: manipulation; box-shadow: 0 2px 0 var(--rand);
+    user-select: none; -webkit-user-select: none; }
+  .folge .griff { color: var(--leise); font-size: 14px; letter-spacing: -2px; flex: 0 0 auto; }
+  .folge.gewaehlt { outline: 3px solid var(--akzent); outline-offset: -1px; }
 
   /* Untere Leiste */
   .leiste { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -267,7 +275,9 @@ function plong() {                       // kleiner Fehler
 
 // ── Gemeinsame Rückmeldung ──────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-function melde(text, art = "") { $("meldung").textContent = text; $("meldung").className = art; }
+// eigene Klassen (m-…): die allgemeinen .richtig/.falsch färben Karten und würden
+// die Meldungszeile sonst rosa hinterlegen und wackeln lassen
+function melde(text, art = "") { $("meldung").textContent = text; $("meldung").className = art ? "m-" + art : ""; }
 function sieg(text) {
   $("gewonnen").style.display = "block";
   melde(text, "gut");
@@ -552,38 +562,69 @@ function lueckentext(text, ablenker) {
 }
 
 // ── Spieltyp: Zuordnen (Kausalkette) ────────────────────────────────────────
+// Links stehen die Ursachen fest, rechts die Folgen als Karten. Folgen werden mit
+// dem Finger neben die passende Ursache gezogen; alternativ zwei Karten nacheinander
+// antippen = tauschen. Gleich hohe Zellen halten die Zeilen bündig.
 function zuordnen(linksLabel, rechtsLabel, ketten) {
   const spiel = $("spiel");
+  let gewaehlt = null, geloest = false;
+  function zelle(cls, text) {
+    const li = document.createElement("li"); li.className = "zelle " + cls;
+    const t = document.createElement("span"); t.className = "t"; t.textContent = text;
+    if (cls === "folge") { const g = document.createElement("span"); g.className = "griff"; g.textContent = "⋮⋮"; li.appendChild(g); }
+    li.appendChild(t); return li;
+  }
+  function geaendert() {
+    if (geloest) return;
+    spiel.querySelectorAll(".zelle").forEach(z => z.classList.remove("richtig", "falsch"));
+    melde("");
+  }
+  function tippen(li) {
+    if (geloest) return;
+    audio();
+    if (!gewaehlt) { gewaehlt = li; li.classList.add("gewaehlt"); return; }
+    if (gewaehlt !== li && gewaehlt.parentNode === li.parentNode) {      // nur innerhalb einer Kette
+      const liste = li.parentNode, platz = document.createElement("li");
+      liste.replaceChild(platz, gewaehlt); liste.replaceChild(gewaehlt, li); liste.replaceChild(li, platz);
+      geaendert();
+    }
+    gewaehlt.classList.remove("gewaehlt"); gewaehlt = null;
+  }
   function start() {
-    zuruecksetzenAnzeige();
+    zuruecksetzenAnzeige(); geloest = false; gewaehlt = null;
     spiel.innerHTML = "";
     ketten.forEach(([titel, paare]) => {
       const k = document.createElement("div"); k.className = "kette";
       const h = document.createElement("h2"); h.textContent = titel; k.appendChild(h);
-      const rechte = mischen(paare.map(p => p[1]));
-      paare.forEach(([l, r]) => {
-        const p = document.createElement("div"); p.className = "paar"; p.dataset.soll = r;
-        const lt = document.createElement("div"); lt.className = "links"; lt.dataset.l = linksLabel + ":"; lt.textContent = l;
-        const s = document.createElement("select");
-        s.innerHTML = `<option value="">${rechtsLabel} wählen …</option>`;
-        rechte.forEach(x => { const o = document.createElement("option"); o.value = x; o.textContent = x; s.appendChild(o); });
-        s.onchange = () => { audio(); p.classList.remove("richtig", "falsch"); melde(""); };
-        p.append(lt, s); k.appendChild(p);
-      });
-      spiel.appendChild(k);
+      const kopf = document.createElement("div"); kopf.className = "k-kopf";
+      kopf.innerHTML = "<span></span><span></span>";
+      kopf.children[0].textContent = linksLabel; kopf.children[1].textContent = rechtsLabel + " ↕";
+      const raster = document.createElement("div"); raster.className = "k-raster";
+      const links = document.createElement("ol"); links.className = "k-spalte";
+      const rechts = document.createElement("ol"); rechts.className = "k-spalte folgen";
+      paare.forEach(([l]) => links.appendChild(zelle("ursache", l)));
+      let reihe;
+      do { reihe = mischen(paare.map((p, i) => [p[1], i])); }
+      while (reihe.length > 2 && reihe.every(([, i], k) => i === k));
+      reihe.forEach(([r, i]) => { const li = zelle("folge", r); li.dataset.i = i; li.onclick = () => tippen(li); rechts.appendChild(li); });
+      raster.append(links, rechts); k.append(kopf, raster); spiel.appendChild(k);
+      if (window.Sortable) Sortable.create(rechts, { animation: 160, delay: 120, delayOnTouchOnly: true,
+        onStart: () => { if (gewaehlt) { gewaehlt.classList.remove("gewaehlt"); gewaehlt = null; } },
+        onEnd: () => { audio(); geaendert(); } });
     });
     knoepfe(pruefen, "Prüfen", start);
   }
   function pruefen() {
-    const p = [...spiel.querySelectorAll(".paar")];
-    let richtig = 0;
-    p.forEach(x => {
-      const ok = x.querySelector("select").value === x.dataset.soll;
-      x.classList.remove("richtig", "falsch"); void x.offsetWidth;
-      x.classList.add(ok ? "richtig" : "falsch"); if (ok) richtig++;
+    let richtig = 0, alle = 0;
+    spiel.querySelectorAll(".kette").forEach(k => {
+      const [links, rechts] = k.querySelectorAll(".k-spalte");
+      [...rechts.children].forEach((li, pos) => {
+        const ok = Number(li.dataset.i) === pos; alle++; if (ok) richtig++;
+        [li, links.children[pos]].forEach(z => { z.classList.remove("richtig", "falsch"); void z.offsetWidth; z.classList.add(ok ? "richtig" : "falsch"); });
+      });
     });
-    if (richtig === p.length) { sieg("Alle Zusammenhänge richtig!"); knoepfe(start, "Nochmal spielen", start); }
-    else niederlage(`${richtig} von ${p.length} richtig – rote Felder ändern und nochmal prüfen.`);
+    if (richtig === alle) { geloest = true; sieg("Alle Zusammenhänge richtig!"); knoepfe(start, "Nochmal spielen", start); }
+    else niederlage(`${richtig} von ${alle} richtig – rote Folgen an die passende Stelle ziehen.`);
   }
   start();
 }
@@ -606,7 +647,7 @@ const TYPEN = {
   hangman: { marke: "Hangman", anl: "Errate den Begriff Buchstabe für Buchstabe – du hast 7 Leben.", los: d => hangman(d.e) },
   lueckentext: { marke: "Lückentext", anl: "Tippe auf eine Lücke und wähle das passende Wort. Achtung: Es gibt auch falsche Wörter.",
     los: d => lueckentext(d.e.t, d.e.d || []) },
-  zuordnen: { marke: "Kausalkette", anl: "Ordne jeder Ursache die passende Folge zu.",
+  zuordnen: { marke: "Kausalkette", anl: "Ziehe jede Folge neben die passende Ursache – oder tippe zwei Folgen nacheinander an, um sie zu tauschen.",
     los: d => zuordnen(d.e.l || "Ursache", d.e.r || "Folge", d.e.k) },
 };
 
