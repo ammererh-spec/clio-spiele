@@ -124,6 +124,14 @@
     user-select: none; -webkit-user-select: none; }
   .folge .griff { color: var(--leise); font-size: 14px; letter-spacing: -2px; flex: 0 0 auto; }
   .folge.gewaehlt { outline: 3px solid var(--akzent); outline-offset: -1px; }
+  /* Kausalkette als Ereignisfolge: Auslöser fest, Pfeile zwischen den Gliedern */
+  .kettenpfeile .karte, .karte.fest { position: relative; margin-bottom: 26px; }
+  .kettenpfeile .karte::after, .karte.fest::after { content: "↓"; position: absolute; left: 50%; bottom: -24px;
+    transform: translateX(-50%); color: var(--akzent); font-weight: 700; font-size: 18px; }
+  .kettenpfeile .karte:last-child::after { content: none; }
+  .karte.fest { background: var(--akzent-hell); border-color: var(--akzent); }
+  .karte.fest .nr { color: var(--akzent); }
+  .karte.gewaehlt { outline: 3px solid var(--akzent); outline-offset: -1px; }
 
   /* Untere Leiste */
   .leiste { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -315,9 +323,20 @@ const ERFOLG = 0.8;   // Quiz/Hangman: ab 80 % richtig gibt es den großen Jubel
 // ── Spieltyp: Reihenfolge (Zeitleiste, Domino) ──────────────────────────────
 // schluessel(i) bestimmt, was an Position i stehen muss: Jahr (Zeitleiste – gleiche
 // Jahre sind beide richtig) bzw. Original-Position (Domino).
-function reihenfolge(eintraege, darstellen, schluessel, nachLoesung) {
+function reihenfolge(eintraege, darstellen, schluessel, nachLoesung, tauschen = false) {
   const spiel = $("spiel");
-  let versuche = 0, geloest = false;
+  let versuche = 0, geloest = false, gewaehlt = null;
+  function tippen(li, ev) {                       // zwei Karten nacheinander antippen = tauschen
+    if (!tauschen || geloest || ev.target.closest(".pfeile")) return;
+    audio();
+    if (!gewaehlt) { gewaehlt = li; li.classList.add("gewaehlt"); return; }
+    if (gewaehlt !== li) {
+      const platz = document.createElement("li");
+      liste.replaceChild(platz, gewaehlt); liste.replaceChild(gewaehlt, li); liste.replaceChild(li, platz);
+      geaendert();
+    }
+    gewaehlt.classList.remove("gewaehlt"); gewaehlt = null;
+  }
   spiel.innerHTML = '<div class="achse">⬆ ' + (window.ACHSE_OBEN || "Anfang") + '</div><ol class="liste" id="liste"></ol>' +
     '<div class="achse">⬇ ' + (window.ACHSE_UNTEN || "Ende") + '</div>';
   const liste = $("liste");
@@ -330,7 +349,7 @@ function reihenfolge(eintraege, darstellen, schluessel, nachLoesung) {
     melde("");
   }
   function aufbauen() {
-    geloest = false; versuche = 0; zuruecksetzenAnzeige();
+    geloest = false; versuche = 0; gewaehlt = null; zuruecksetzenAnzeige();
     liste.innerHTML = "";
     let reihe;
     do { reihe = mischen(eintraege.map((e, i) => [e, i])); }
@@ -345,6 +364,7 @@ function reihenfolge(eintraege, darstellen, schluessel, nachLoesung) {
       const [hoch, runter] = li.querySelectorAll(".pfeile button");
       hoch.onclick = () => { if (li.previousElementSibling) liste.insertBefore(li, li.previousElementSibling); geaendert(); };
       runter.onclick = () => { if (li.nextElementSibling) liste.insertBefore(li.nextElementSibling, li); geaendert(); };
+      li.onclick = ev => tippen(li, ev);
       liste.appendChild(li);
     });
     nummern();
@@ -602,10 +622,15 @@ function zuordnen(linksLabel, rechtsLabel, ketten) {
       const raster = document.createElement("div"); raster.className = "k-raster";
       const links = document.createElement("ol"); links.className = "k-spalte";
       const rechts = document.createElement("ol"); rechts.className = "k-spalte folgen";
-      paare.forEach(([l]) => links.appendChild(zelle("ursache", l)));
+      // Auch die Ursachen gemischt – in Originalreihenfolge verrieten sie bei
+      // verketteten Daten die Lösung. (Verkettete Einzelketten laufen ohnehin
+      // als Ereignisfolge, siehe TYPEN.zuordnen.)
+      const ordnung = mischen(paare.map((_, i) => i));
+      links.dataset.o = JSON.stringify(ordnung);
+      ordnung.forEach(i => links.appendChild(zelle("ursache", paare[i][0])));
       let reihe;
       do { reihe = mischen(paare.map((p, i) => [p[1], i])); }
-      while (reihe.length > 2 && reihe.every(([, i], k) => i === k));
+      while (reihe.length > 2 && reihe.every(([, i], k) => i === ordnung[k]));
       reihe.forEach(([r, i]) => { const li = zelle("folge", r); li.dataset.i = i; li.onclick = () => tippen(li); rechts.appendChild(li); });
       raster.append(links, rechts); k.append(kopf, raster); spiel.appendChild(k);
       if (window.Sortable) Sortable.create(rechts, { animation: 160, delay: 120, delayOnTouchOnly: true,
@@ -618,8 +643,9 @@ function zuordnen(linksLabel, rechtsLabel, ketten) {
     let richtig = 0, alle = 0;
     spiel.querySelectorAll(".kette").forEach(k => {
       const [links, rechts] = k.querySelectorAll(".k-spalte");
+      const ordnung = JSON.parse(links.dataset.o);
       [...rechts.children].forEach((li, pos) => {
-        const ok = Number(li.dataset.i) === pos; alle++; if (ok) richtig++;
+        const ok = Number(li.dataset.i) === ordnung[pos]; alle++; if (ok) richtig++;
         [li, links.children[pos]].forEach(z => { z.classList.remove("richtig", "falsch"); void z.offsetWidth; z.classList.add(ok ? "richtig" : "falsch"); });
       });
     });
@@ -648,7 +674,28 @@ const TYPEN = {
   lueckentext: { marke: "Lückentext", anl: "Tippe auf eine Lücke und wähle das passende Wort. Achtung: Es gibt auch falsche Wörter.",
     los: d => lueckentext(d.e.t, d.e.d || []) },
   zuordnen: { marke: "Kausalkette", anl: "Ziehe jede Folge neben die passende Ursache – oder tippe zwei Folgen nacheinander an, um sie zu tauschen.",
-    los: d => zuordnen(d.e.l || "Ursache", d.e.r || "Folge", d.e.k) },
+    los: d => {
+      // Die Generator-Ketten sind verkettet: Folge von Glied i = Ursache von Glied i+1.
+      // Dann ist die Aufgabe eine Ereignisfolge – wie in der Beamer-Fassung steht nur
+      // der Auslöser fest, alles Weitere bauen die Schüler:innen selbst auf. (Mit
+      // festen Ursachen in Originalreihenfolge stand die Lösung schon da: die Folge
+      // jeder Zeile war wörtlich die Ursache der nächsten.)
+      const n = s => String(s).trim().toLowerCase();
+      const kette = d.e.k.length === 1 &&
+        d.e.k[0][1].every((p, i, a) => i === a.length - 1 || n(p[1]) === n(a[i + 1][0]));
+      if (!kette) { zuordnen(d.e.l || "Ursache", d.e.r || "Folge", d.e.k); return; }
+      const paare = d.e.k[0][1];
+      $("anleitung").textContent = "Der Auslöser steht fest. Bringe die übrigen Ereignisse in die richtige " +
+        "Ursache-Folge-Reihe: Jedes Ereignis ist die direkte Folge des vorherigen. Ziehen oder zwei antippen = tauschen.";
+      window.ACHSE_OBEN = "Auslöser"; window.ACHSE_UNTEN = "letzte Folge";
+      reihenfolge(paare.map(p => p[1]), t => { const s = document.createElement("span"); s.className = "text";
+        s.textContent = t; return s; }, (_, i) => i, null, true);
+      $("liste").classList.add("kettenpfeile");
+      const fest = document.createElement("div"); fest.className = "karte fest";
+      fest.innerHTML = '<span class="nr">⚑</span><span class="text"></span>';
+      fest.querySelector(".text").textContent = paare[0][0];
+      $("liste").before(fest);
+    } },
 };
 
 async function startSpiel() {
