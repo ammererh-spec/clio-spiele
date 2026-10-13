@@ -323,7 +323,8 @@ const ERFOLG = 0.8;   // Quiz/Hangman: ab 80 % richtig gibt es den großen Jubel
 // ── Spieltyp: Reihenfolge (Zeitleiste, Domino) ──────────────────────────────
 // schluessel(i) bestimmt, was an Position i stehen muss: Jahr (Zeitleiste – gleiche
 // Jahre sind beide richtig) bzw. Original-Position (Domino).
-function reihenfolge(eintraege, darstellen, schluessel, nachLoesung, tauschen = false) {
+// weiter: {text, fn} – nach der Lösung geht es damit weiter (z. B. nächste Kausalkette)
+function reihenfolge(eintraege, darstellen, schluessel, nachLoesung, tauschen = false, weiter = null) {
   const spiel = $("spiel");
   let versuche = 0, geloest = false, gewaehlt = null;
   function tippen(li, ev) {                       // zwei Karten nacheinander antippen = tauschen
@@ -383,8 +384,10 @@ function reihenfolge(eintraege, darstellen, schluessel, nachLoesung, tauschen = 
     if (richtig === karten.length) {
       geloest = true;
       if (nachLoesung) karten.forEach(nachLoesung);
-      sieg(versuche === 1 ? "Beim ersten Versuch – großartig!" : `Geschafft nach ${versuche} Versuchen!`);
-      knoepfe(aufbauen, "Nochmal spielen", aufbauen);
+      sieg((weiter && weiter.lob ? weiter.lob + " " : "") +
+           (versuche === 1 ? "Beim ersten Versuch – großartig!" : `Geschafft nach ${versuche} Versuchen!`));
+      if (weiter) knoepfe(weiter.fn, weiter.text, aufbauen);
+      else knoepfe(aufbauen, "Nochmal spielen", aufbauen);
     } else {
       niederlage(`${richtig} von ${karten.length} richtig – rote Karten verschieben und nochmal prüfen.`);
     }
@@ -429,6 +432,58 @@ function quiz(fragen) {
     knoepfe(start, "Nochmal spielen", start);
     if (punkte / reihe.length >= ERFOLG) sieg(punkte === reihe.length ? "Alles richtig – großartig!" : "Stark gespielt!");
     else niederlage("Das geht noch besser – versuch es gleich nochmal!");
+  }
+  start();
+}
+
+// ── Spieltyp: Millionenshow ─────────────────────────────────────────────────
+// Wie in der Show und in der Beamer-Fassung: feste Reihenfolge (Schwierigkeitsleiter),
+// eine falsche Antwort beendet das Spiel, gesichert ist die letzte Sicherheitsstufe.
+const PREISE = ["€ 100", "€ 500", "€ 1.000", "€ 2.000", "€ 4.000", "€ 8.000", "€ 16.000",
+                "€ 32.000", "€ 64.000", "€ 125.000", "€ 500.000", "€ 1.000.000"];
+const SICHER = new Set([1, 6]);                       // € 500 und € 16.000
+function millionaer(fragen) {
+  const spiel = $("spiel");
+  let nr = 0;
+  function gesichert(bisEinschl) { for (let i = bisEinschl; i >= 0; i--) if (SICHER.has(i)) return PREISE[i]; return "€ 0"; }
+  function start() { zuruecksetzenAnzeige(); nr = 0; zeigen(); }
+  function zeigen() {
+    const [frage, opts] = fragen[nr];
+    const preis = PREISE[nr] || "";
+    spiel.innerHTML = `<div class="stand">Frage ${nr + 1} von ${fragen.length} · <b>${preis}</b>` +
+      `${SICHER.has(nr) ? " 🔒" : ""} · gesichert: ${nr ? gesichert(nr - 1) : "€ 0"}</div>` +
+      '<div class="frage"></div><div class="optionen"></div>';
+    spiel.querySelector(".frage").textContent = frage;
+    const box = spiel.querySelector(".optionen");
+    opts.forEach((o, i) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.innerHTML = `<b>${"ABCD"[i]}</b>`; b.append(o);
+      b.onclick = () => antworten(i, b);
+      box.appendChild(b);
+    });
+    $("leiste").style.display = "none";
+  }
+  function antworten(i, b) {
+    audio();
+    const richtigIdx = fragen[nr][2];
+    const alle = [...spiel.querySelectorAll(".optionen button")];
+    alle.forEach(x => x.disabled = true);
+    alle[richtigIdx].classList.add("richtig");
+    if (i !== richtigIdx) {                            // ausgeschieden
+      b.classList.add("falsch");
+      const betrag = nr ? gesichert(nr - 1) : "€ 0";
+      setTimeout(() => niederlage(`Leider falsch – ausgeschieden bei Frage ${nr + 1}. Gesichert: ${betrag}`), 600);
+      knoepfe(start, "Nochmal spielen", start);
+      return;
+    }
+    pling();
+    if (nr === fragen.length - 1) {
+      setTimeout(() => sieg("🏆 Die Millionenfrage gemeistert!"), 500);
+      knoepfe(start, "Nochmal spielen", start);
+      return;
+    }
+    melde(`Richtig! ${PREISE[nr]}${SICHER.has(nr) ? " – gesichert 🔒" : ""}`, "gut");
+    knoepfe(() => { melde(""); nr++; zeigen(); }, "Nächste Frage", start);
   }
   start();
 }
@@ -669,6 +724,8 @@ const TYPEN = {
         const x = document.createElement("span"); x.textContent = a; const y = document.createElement("span"); y.textContent = b;
         s.append(x, y); return s; }, (_, i) => i); } },
   quiz: { marke: "Quiz", anl: "Tippe die richtige Antwort an.", los: d => quiz(d.e) },
+  millionaer: { marke: "Millionenshow", anl: "12 Fragen, jede schwerer als die vorige. Eine falsche Antwort – und du scheidest aus. Bei € 500 und € 16.000 ist dein Gewinn gesichert.",
+    los: d => millionaer(d.e) },
   memory: { marke: "Memory", anl: "Decke zwei Karten auf und finde die zusammengehörenden Paare.", los: d => memory(d.e) },
   hangman: { marke: "Hangman", anl: "Errate den Begriff Buchstabe für Buchstabe – du hast 7 Leben.", los: d => hangman(d.e) },
   lueckentext: { marke: "Lückentext", anl: "Tippe auf eine Lücke und wähle das passende Wort. Achtung: Es gibt auch falsche Wörter.",
@@ -680,21 +737,32 @@ const TYPEN = {
       // der Auslöser fest, alles Weitere bauen die Schüler:innen selbst auf. (Mit
       // festen Ursachen in Originalreihenfolge stand die Lösung schon da: die Folge
       // jeder Zeile war wörtlich die Ursache der nächsten.)
+      // Am Smartphone spielen alle dieselbe Version: alle Ketten in einem Link,
+      // nacheinander (Kette 1 von 4 → „Nächste Kette“).
       const n = s => String(s).trim().toLowerCase();
-      const kette = d.e.k.length === 1 &&
-        d.e.k[0][1].every((p, i, a) => i === a.length - 1 || n(p[1]) === n(a[i + 1][0]));
-      if (!kette) { zuordnen(d.e.l || "Ursache", d.e.r || "Folge", d.e.k); return; }
-      const paare = d.e.k[0][1];
-      $("anleitung").textContent = "Der Auslöser steht fest. Bringe die übrigen Ereignisse in die richtige " +
-        "Ursache-Folge-Reihe: Jedes Ereignis ist die direkte Folge des vorherigen. Ziehen oder zwei antippen = tauschen.";
-      window.ACHSE_OBEN = "Auslöser"; window.ACHSE_UNTEN = "letzte Folge";
-      reihenfolge(paare.map(p => p[1]), t => { const s = document.createElement("span"); s.className = "text";
-        s.textContent = t; return s; }, (_, i) => i, null, true);
-      $("liste").classList.add("kettenpfeile");
-      const fest = document.createElement("div"); fest.className = "karte fest";
-      fest.innerHTML = '<span class="nr">⚑</span><span class="text"></span>';
-      fest.querySelector(".text").textContent = paare[0][0];
-      $("liste").before(fest);
+      const verkettet = paare => paare.every((p, i, a) => i === a.length - 1 || n(p[1]) === n(a[i + 1][0]));
+      if (!d.e.k.every(([, paare]) => verkettet(paare))) { zuordnen(d.e.l || "Ursache", d.e.r || "Folge", d.e.k); return; }
+      const titelGesamt = d.titel || "Kausalkette";
+      function kette(idx) {
+        const [ktitel, paare] = d.e.k[idx], viele = d.e.k.length > 1;
+        $("titel").textContent = viele ? `${titelGesamt} – Kette ${idx + 1} von ${d.e.k.length}` : titelGesamt;
+        $("anleitung").textContent = (ktitel ? `„${ktitel}“: ` : "") + "Der Auslöser steht fest. Bringe die übrigen " +
+          "Ereignisse in die richtige Ursache-Folge-Reihe – jedes ist die direkte Folge des vorherigen. " +
+          "Ziehen oder zwei antippen = tauschen.";
+        window.ACHSE_OBEN = "Auslöser"; window.ACHSE_UNTEN = "letzte Folge";
+        const letzte = idx === d.e.k.length - 1;
+        reihenfolge(paare.map(p => p[1]), t => { const s = document.createElement("span"); s.className = "text";
+          s.textContent = t; return s; }, (_, i) => i, null, true,
+          letzte ? (viele ? { text: "Nochmal von vorn", fn: () => kette(0), lob: "Alle Ketten geschafft!" } : null)
+                 : { text: "Nächste Kette ▶", fn: () => kette(idx + 1), lob: `Kette ${idx + 1} geschafft!` });
+        $("liste").classList.add("kettenpfeile");
+        const fest = document.createElement("div"); fest.className = "karte fest";
+        fest.innerHTML = '<span class="nr">⚑</span><span class="text"></span>';
+        fest.querySelector(".text").textContent = paare[0][0];
+        $("liste").before(fest);
+        window.scrollTo({ top: 0 });
+      }
+      kette(0);
     } },
 };
 
